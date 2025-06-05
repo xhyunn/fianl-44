@@ -171,27 +171,16 @@
       font-size: 14pt;
       color: #ccc;
     }
-    .arc-wrapper {
+
+    .arc-container {
       position: absolute;
       width: 100vw;
       height: 100vh;
       top: 0;
       left: 0;
-    }
-
-    /* Center the arc absolutely on the screen */
-    .arc-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100vw;
-      height: 100vh;
-      transform: translate(-50%, -50%);
+      transform: rotate(0deg);
+      transform-origin: center center;
       z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
     }
 
     .arc-image {
@@ -203,6 +192,7 @@
       transform-origin: center center;
       transition: transform 0.3s ease;
       filter: grayscale(70%);
+      margin: 20 20px;
     }
 
     .arc-image:hover {
@@ -683,7 +673,6 @@
         { src: 'ocean-5.png', label: '해달' },
       ];
 
-      // Place images in arc-container, then position and rotate with JS below
       images.forEach((imgData) => {
         const wrapper = document.createElement('div');
         wrapper.style.position = 'absolute';
@@ -701,39 +690,33 @@
         arc.appendChild(wrapper);
       });
 
-      const wrappers = arc.querySelectorAll('div');
-      const arcRect = arc.getBoundingClientRect();
-      const radius = Math.min(arcRect.width, arcRect.height) * 0.4;
-      const centerX = arcRect.width / 2;
-      const centerY = arcRect.height / 2;
-      const total = wrappers.length;
-
-      wrappers.forEach((wrapper, i) => {
-        const angle = ((i / total) * Math.PI);
-        const x = centerX + radius * Math.cos(angle - Math.PI) - 90;
-        const y = centerY + radius * Math.sin(angle - Math.PI) - 120;
-        wrapper.style.left = `${x}px`;
-        wrapper.style.top = `${y}px`;
-        wrapper.style.transform = `rotate(${(angle - Math.PI / 2) * (180 / Math.PI)}deg)`;
+      const arcContainer = arc;
+      const arcImages = arcContainer.querySelectorAll('img');
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2 + 100;
+      const radius = Math.min(centerX, centerY) - 100;
+      const total = arcImages.length;
+      arcImages.forEach((img, index) => {
+        img.onload = function() {
+          const angle = (index / total) * Math.PI; 
+          const x = centerX + radius * Math.cos(angle - Math.PI) - img.width / 2;
+          const y = centerY + radius * Math.sin(angle - Math.PI) - img.height / 2;
+          img.style.left = `${x}px`;
+          img.style.top = `${y}px`;
+          img.style.transform = `rotate(${(angle - Math.PI / 2) * (180 / Math.PI)}deg)`;
+          if (img.nextSibling && img.nextSibling.classList && img.nextSibling.classList.contains('image-label')) {
+            img.nextSibling.style.left = '50%';
+            img.nextSibling.style.transform = 'translateX(-50%)';
+          }
+        };
+        if (img.complete) img.onload();
       });
 
-      let rotation = 0;
+      let rotate = 0;
       setInterval(() => {
-        const arcRect = arc.getBoundingClientRect();
-        const radius = Math.min(arcRect.width, arcRect.height) * 0.4;
-        const centerX = arcRect.width / 2;
-        const centerY = arcRect.height / 2;
-        const wrappers = arc.querySelectorAll('div');
-        wrappers.forEach((wrapper, i) => {
-          const angle = ((i / total) * Math.PI) + rotation;
-          const x = centerX + radius * Math.cos(angle - Math.PI) - 90;
-          const y = centerY + radius * Math.sin(angle - Math.PI) - 120;
-          wrapper.style.left = `${x}px`;
-          wrapper.style.top = `${y}px`;
-          wrapper.style.transform = `rotate(${(angle - Math.PI / 2) * (180 / Math.PI)}deg)`;
-        });
-        rotation += 0.002;
-      }, 20);
+        rotate += 0.1;
+        arc.style.transform = `rotate(${rotate}deg)`;
+      }, 40);
     }
 
     menuItems.forEach(item => {
