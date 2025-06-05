@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Split Scroll Layout</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/webfontworld/sandoll/SandollGothicNeo1.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { word-break: keep-all; height: 100%; font-family: 'Sandoll GothicNeo1 Medium', 'Helvetica Neue', sans-serif; background: #fff; color: #000; overflow: hidden;}
+    .container { display: flex; height: 100vh; overflow: hidden;}
+    .left {width: 35%; height: 1000px; overflow-y: scroll;padding: 60px 40px; border-right: 1px solid #ccc; background: #fff;}
+    .right {width: 65%;height: 100%; overflow-y: scroll;padding: 60px 60px;background: #fafafa;}
+    .intro-image {width: 100%; height: 100%; object-fit: cover;}
+    .intro { font-size: 18pt; line-height: 1.6; margin-bottom: 300px; }
+    .menu { font-size: 14pt; color: #999;}
+    .menu li {list-style: none; margin: 12px 0; cursor: pointer;}
+    .menu li.active { color: #000; font-weight: bold;}
+    .content {
+      font-size: 15pt;
+      line-height: 2;
+      letter-spacing: -0.01em;
+      max-width: 720px;
+      word-break: keep-all;
+      margin: 0 auto;
+      font-weight: 500;
+    }
+    .content h2 {
+      font-size: 42pt;
+      font-weight: 500;
+      margin-bottom: 40px;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .content p {
+      margin-bottom: 28px;
+      font-weight: 400;
+      color: #222;
+    }
+    .content blockquote {
+      font-style: italic;
+      font-size: 18pt;
+      line-height: 1.6;
+      padding-left: 20px;
+      border-left: 5px solid #bbb;
+      color: #555;
+      margin: 40px 0;
+    }
+    .right[style*="background-color: rgb(0, 0, 0)"] .content p,
+    .right[style*="background-color: rgb(0, 0, 0)"] .content blockquote {
+      color: #fff;
+      border-left-color: #888;
+    }
+
+    .grid-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      margin-top: 60px;
+      width: 100%;
+    }
+    .grid-gallery .item {
+      perspective: 1000px;
+      height: 33.333vw;
+    }
+    .grid-gallery .flip-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s ease;
+    }
+    .grid-gallery .item:hover .flip-card {
+      transform: rotateY(180deg);
+    }
+    .grid-gallery .front,
+    .grid-gallery .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      overflow: hidden;
+    }
+    .grid-gallery .front img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(100%);
+    }
+    .grid-gallery .back {
+      background: #111;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: rotateY(180deg);
+      font-size: 12pt;
+      text-align: center;
+      padding: 12px;
+    }
+    .grid-gallery .spacer {
+      height: 0;
+    }
+
+    .quote-masonry {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: minmax(100px, auto);
+      gap: 2px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0;
+      background: #eee;
+    }
+    .quote-masonry .quote {
+      border: 0.5px solid #aaa;
+      background: #fff;
+      padding: 30px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 14pt;
+      line-height: 1.6;
+      font-style: italic;
+      box-sizing: border-box;
+      flex-direction: column;
+    }
+    .quote-masonry .quote strong {
+      font-size: 11pt;
+      font-style: normal;
+      font-weight: 600;
+      display: block;
+      margin-top: 12px;
+    }
+    .quote-4x2 { grid-column: span 4; grid-row: span 2; }
+    .quote-4x3 { grid-column: span 4; grid-row: span 3; }
+    .quote-6x2 { grid-column: span 6; grid-row: span 2; }
+    .quote-3x2 { grid-column: span 3; grid-row: span 2; }
+    .quote-3x1 { grid-column: span 3; grid-row: span 1; }
+    .quote-4x1 { grid-column: span 4; grid-row: span 1; }
+
+    #fullscreen-forecast {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      color: #fff;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .center-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 2;
+    }
+
+    .center-text h1 {
+      font-size: 36pt;
+      margin-bottom: 10px;
+    }
+
+    .center-text p {
+      font-size: 14pt;
+      color: #ccc;
+    }
+    .arc-wrapper {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+    }
+
+    /* Center the arc absolutely on the screen */
+    .arc-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100vw;
+      height: 100vh;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .arc-image {
+      position: absolute;
+      width: 150px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 20px;
+      transform-origin: center center;
+      transition: transform 0.3s ease;
+      filter: grayscale(70%);
+    }
+
+    .arc-image:hover {
+      transform: scale(1.2) translateY(-20px);
+      filter: grayscale(0%);
+      z-index: 3;
+    }
+
+    .image-label {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 11pt;
+      background: rgba(0,0,0,0.6);
+      padding: 4px 8px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .arc-image:hover + .image-label {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <div class="intro">
+        우리는 사라진 것을 위해 이야기를 남깁니다.
+        기후변화는 느리게, 그러나 확실하게 많은 것을 빼앗아갔습니다.
+        기억되지 않는 멸종은 두 번 죽는 것입니다.
+        그래서 우리는 오늘, 그들을 위한 장례를 준비했습니다.
+      </div>
+      <ul class="menu" id="menu">
+        <li class="active" data-id="intro">Intro</li>
+        <li data-id="seasons">1. Disappearing Seasons</li>
+        <li data-id="whitenomore">2. White No More</li>
+        <li data-id="coral">3. Dead Coral Diaries</li>
+        <li data-id="muted">4. Muted Sounds</li>
+        <li data-id="extinct">5. Extinct and Unnoticed</li>
+        <li data-id="forecasts">6. Final Forecasts</li>
+      </ul>
+    </div>
+
+    <div class="right" id="right">
+      <div class="content">
+        <p><strong></strong></p>
+      </div>
+    </div>
+  </div>
+  <div id="fullscreen-forecast">
+    <div id="close-forecast" style="position:absolute; top:20px; left:20px; font-size:24px; cursor:pointer; z-index:3;">✕</div>
+    <div class="center-text">
+      <h1>Final Forecasts</h1>
+      <p>Climate memories lost in silence.</p>
+    </div>
+    <div class="arc-container" id="arcContainer"></div>
+  </div>
+  <script>
+    const menuItems = document.querySelectorAll('#menu li');
+    const contentArea = document.querySelector('.right .content');
+
+    function shuffleGridGallery(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html.trim();
+      const items = Array.from(container.querySelectorAll('.grid-gallery .item'));
+      const spacers = Array.from(container.querySelectorAll('.grid-gallery .spacer'));
+      const shuffled = [];
+
+      const all = items.concat(spacers);
+      for (let i = all.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [all[i], all[j]] = [all[j], all[i]];
+      }
+
+      const grid = container.querySelector('.grid-gallery');
+      if (grid) {
+        grid.innerHTML = '';
+        all.forEach(node => grid.appendChild(node));
+      }
+      return container.innerHTML;
+    }
+
+    const contents = {
+      intro: `
+        <h2>We Write for the Disappeared</h2>
+        <p>
+          <em>기후 위기는 단지 숫자의 문제가 아닙니다. 그것은 감각과 기억, 계절과 생명을 서서히 지워내는 이야기입니다.</em>
+        </p>
+        <p>
+          <br>
+          이 웹사이트는 사라진 존재들을 위한 디지털 장례식입니다. 북극곰이나 산호초처럼 뉴스에 나오는 상징적인 생물만이 아니라,
+          우리가 한때 느꼈던 바람의 결, 들판의 풀 내음, 겨울 아침의 침묵까지도 함께 추모합니다. 각 섹션은 하나의 사라진 장면을 담고 있습니다.
+          기억의 파편들을 따라가며, 우리는 무관심의 시간을 건너고자 합니다.
+        </p>
+        <p class="intro-desc">
+          아래 카테고리를 클릭해 잊혀진 계절, 하얀 겨울, 침묵한 소리의 장례를 시작해보세요.
+        </p>
+        <img
+          src="plant photo.jpg"
+          alt="문 이미지"
+          class="intro-image"
+        >
+      `,
+      seasons: `
+    <section class="description">
+      <h2>Disappearing Seasons</h2>
+      <p><em>“언제부터였을까. 봄은 너무 짧고, 여름은 갑자기 시작되었다.”</em></p>
+      <p>더 이상 사계절은 네 개가 아니다. 봄은 눈 깜짝할 새 지나가고, 가을은 한 번쯤 스웨터를 꺼내기 무섭게 사라진다. 이제 계절은 두 개로 느껴진다. 덥거나, 춥거나.</p>
+      <p>2020년 이후, 한국을 포함한 중위도 국가들에서는 봄과 가을의 평균 길이가 20~30% 가까이 줄어들었다.특히 2023년 서울의 봄은 '27일밖에 되지 않았다'는 기사 제목이 회자되기도 했다.</p>
+      <p>이는 단순한 감상이 아니라 기후 시스템의 구조적 붕괴를 의미한다.나무는 꽃을 피우지 못하고, 곤충은 시기를 놓쳐 죽는다. 계절의 순환이 깨어지면, 생태계도 함께 흔들린다.</p>
+      <blockquote>“사계절을 느껴본 마지막 세대는 우리일지도 모른다.”</blockquote>
+      <p>사계절은 기억의 프레임이다. 따뜻했던 봄날의 첫 산책, 선선한 바람이 불던 오후의 그 기분, 그런 순간들이 더 이상 ‘정해진 때’에 찾아오지 않는다.<br>
+      계절의 붕괴는, 우리의 정서적 연대감을 함께 빼앗아간다.</p>
+    </section>
+
+    <section class="grid-gallery">
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-1.png" alt="냉이">
+          </div>
+          <div class="back">
+            첫 냉이 향기
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-2.png" alt="꿀벌">
+          </div>
+          <div class="back">
+            아카시아 벌소리
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-3.png" alt="가을 바람">
+          </div>
+          <div class="back">
+            바람 속의 가을 냄새
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-4.png" alt="니트">
+          </div>
+          <div class="back">
+            꺼내지 못한 니트
+          </div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-6.png" alt="매미">
+          </div>
+          <div class="back">
+            짧아진 매미 소리
+          </div>
+        </div>
+      </div>
+      <div class="item">
+        <div class="flip-card">
+          <div class="front">
+            <img src="weather-5.png" alt="비">
+          </div>
+          <div class="back">
+            들리지 않는 장마 소리
+          </div>
+        </div>
+      </div>
+      </section>
+      `,
+      whitenomore: `
+  <section class="description">
+    <h2>White No More</h2>
+    <p><em>“겨울이 더 이상 흰색이 아니게 되었다.”</em></p>
+    <p>북극여우는 순백의 털로 눈 속에 몸을 숨깁니다. 하지만 더 이상 눈이 쌓이지 않는 겨울엔 그 하얀 털이 오히려 눈에 띄게 되어 생존률이 낮아지고 있습니다.</p>
+    <p>한라산 중턱의 설송(눈 속의 소나무)은 온난화로 인해 더 낮은 고도에서는 자라지 못하게 되었고, 눈을 머금고 서 있던 풍경은 더 이상 보이지 않습니다.</p>
+    <blockquote>“하얀 겨울을 기억하지 못하는 아이들이 자라고 있다.”</blockquote>
+  </section>
+
+  <section class="grid-gallery">
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow 01.jpeg" alt="첫눈">
+        </div>
+        <div class="back">
+          사라진 첫눈의 설렘
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow-2.png" alt="이불 속 햇살">
+        </div>
+        <div class="back">
+          이불 속으로 스며들던 겨울 햇살
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow-3.png" alt="하얀 골목">
+        </div>
+        <div class="back">
+          눈 덮인 조용한 골목길
+        </div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow-4.png" alt="성에">
+        </div>
+        <div class="back">
+          유리창에 피던 성에
+        </div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow-5.png" alt="눈사람">
+        </div>
+        <div class="back">
+          만들지 못한 눈사람
+        </div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="flip-card">
+        <div class="front">
+          <img src="snow-6.png" alt="발자국">
+        </div>
+        <div class="back">
+          흰 눈 위 첫 발자국
+        </div>
+      </div>
+    </div>
+  </section>
+`     ,
+      coral: `
+<section class="description">
+  <h2>Dead Coral Diaries</h2>
+  <p><em>“바다는 여전히 푸르지만, 그 안은 텅 비어간다.”</em></p>
+  <p>지구 해수면 온도가 1도 상승할 때마다 산호초는 광범위하게 백화현상을 겪습니다. 이 현상은 단순한 색의 변화가 아니라, 산호가 죽어간다는 증거입니다.</p>
+  <p>이 산호초에 의존해 살던 나폴레옹피쉬 같은 대형 어류는 서식지를 잃고 점점 개체 수가 줄어들고 있습니다. 바닷속 정원은 점점 유령 도시처럼 변해가고 있습니다.</p>
+  <blockquote>“하얗게 바랜 산호는, 바다의 묘비다.”</blockquote>
+</section>
+
+<section class="grid-gallery">
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-4.png" alt="산호초">
+      </div>
+      <div class="back">죽어가는 산호초</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-3.png" alt="바다거북">
+      </div>
+      <div class="back">방향을 잃은 바다거북</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-2.png" alt="어류">
+      </div>
+      <div class="back">빈 산호 정원을 떠도는 물고기</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-6.png" alt="해초밭">
+      </div>
+      <div class="back">사라진 해초의 물결</div>
+    </div> 
+  </div>
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-5.png" alt="해달">
+      </div>
+      <div class="back">떠내려가는 해달의 쉼터</div>
+    </div>
+  </div>
+  <div class="item">
+    <div class="flip-card">
+      <div class="front">
+        <img src="ocean-1.png" alt="플랑크톤">
+      </div>
+      <div class="back">흐려진 해류 속의 플랑크톤</div>
+    </div>
+  </div>
+</section>
+`,
+      muted: `
+<section class="description">
+  <h2>Muted Sounds</h2>
+  <p><em>“소리조차 사라지고 있다.”</em></p>
+  <p>여름의 매미 소리는 이상 고온으로 인해 더 빠르게 시작되고, 더 일찍 끝납니다. 도시 열섬 현상 속에서 수명이 짧아진 매미는 울음소리를 오래 남기지 못합니다.</p>
+  <p>장마의 빗소리도 예전처럼 촉촉하게 내리지 않습니다. 기후 위기로 인한 집중호우는 소리보다는 두려움을 남깁니다.</p>
+  <blockquote>“조용한 멸종은, 귀로 먼저 시작된다.”</blockquote>
+</section>
+
+<section class="grid-gallery">
+  <div class="item"><div class="flip-card"><div class="front"><img src="weather-6.png" alt="매미소리"></div><div class="back">짧아진 매미 울음</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="sound-2.png" alt="폭우"></div><div class="back">빗소리가 아닌 쏟아지는 공포</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="sound-3.png" alt="철새의 비행"></div><div class="back">사라진 철새의 날갯짓</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="sound-4.png" alt="숲속 소리"></div><div class="back">숲이 내던 소리의 기억</div></div></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="sound-5.png" alt="파도소리"></div><div class="back">잔잔했던 해변의 리듬</div></div></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="sound-6.png" alt="사라진 새소리"></div><div class="back">아침을 깨우던 새소리</div></div></div>
+</section>
+`,
+      extinct: `
+<section class="description">
+  <h2>Extinct and Unnoticed</h2>
+  <p><em>“기억되지 않은 죽음은, 존재하지 않은 것과 같다.”</em></p>
+  <p>일본강도래는 한국에서 사라졌지만 아무도 관심을 가지지 않았습니다. 작은 양서류는 기후 변화와 습지 파괴에 가장 먼저 반응하지만, 가장 적게 조명됩니다.</p>
+  <p>야생 꿀벌 역시 사라지고 있습니다. 도시화, 살충제, 기후변화로 인해 개체 수는 급감했고, 야생 벌의 멸종은 전체 생태계의 균형을 위협합니다.</p>
+  <blockquote>“존재조차 모른 채 사라지는 생명들이, 우리 곁엔 너무 많다.”</blockquote>
+</section>
+
+<section class="grid-gallery">
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-1.jpg" alt="강도래"></div><div class="back">잊힌 일본강도래</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-2.jpg" alt="야생벌"></div><div class="back">사라진 야생 꿀벌</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-3.jpg" alt="도롱뇽"></div><div class="back">자취를 감춘 도롱뇽</div></div></div>
+  <div class="spacer"></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-4.jpg" alt="멸종"></div><div class="back">기록되지 않은 멸종</div></div></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-5.jpg" alt="사라진 꽃"></div><div class="back">이름조차 모르는 들꽃</div></div></div>
+  <div class="item"><div class="flip-card"><div class="front"><img src="extinct-6.jpg" alt="곤충"></div><div class="back">다시는 볼 수 없는 곤충</div></div></div>
+</section>
+`,
+      forecasts: `
+        <section class="description">
+          <h2>Final Forecasts</h2>
+          <p><em>“우리가 지금 본 것은 예고편일 뿐이다.”</em></p>
+          <p>
+            IPCC 보고서에 따르면, 현재와 같은 온실가스 배출이 지속될 경우 2100년까지 지구 평균 기온은 최대 4.4도까지 상승할 수 있습니다.
+          </p>
+          <p>
+            그때의 지구엔 사계절이 없고, 곡물은 자라지 않으며, 물은 사치품이 될 수 있습니다. 하지만 이 미래는 아직 결정된 것이 아닙니다. 지금의 선택은 미래의 기억을 바꿀 수 있습니다.
+          </p>
+          <blockquote>
+            “기억할 수 있는 미래를 위해, 우리는 지금 행동해야 한다.”
+          </blockquote>
+        </section>
+        <section class="quote-display" style="margin-top: 100px;">
+          <h2 style="text-align: center; font-size: 36pt; margin-bottom: 60px;">
+            Voices from the Climate Crisis
+          </h2>
+          <div class="quote-masonry">
+            <div class="quote quote-4x2">
+              ‘The Earth is what we all have in common.’
+              <strong>Wendell Berry</strong>
+            </div>
+            <div class="quote quote-4x3">
+              ‘If you really think the economy is more important than the environment, try holding your breath while counting your money.’
+              <strong>Guy McPherson</strong>
+            </div>
+            <div class="quote quote-4x2">
+              ‘We are the first generation to feel the effect of climate change and the last generation who can do something about it.’
+              <strong>Jay Inslee</strong>
+            </div>
+            <div class="quote quote-6x2">
+              ‘What we do in the next few years will determine the next few thousand years.’
+              <strong>Sir David Attenborough</strong>
+            </div>
+            <div class="quote quote-3x2">
+              ‘The climate crisis is both the easiest and the hardest issue we have ever faced.’
+              <strong>Greta Thunberg</strong>
+            </div>
+            <div class="quote quote-3x1">
+              ‘Climate change is no longer some far-off problem; it is happening here, it is happening now.’
+              <strong>Barack Obama</strong>
+            </div>
+            <div class="quote quote-4x2">
+              ‘Nature is not a place to visit, it is home.’
+              <strong>Gary Snyder</strong>
+            </div>
+            <div class="quote quote-4x1">
+              ‘One planet, one chance.’
+              <strong>Unknown</strong>
+            </div>
+            <div class="quote quote-4x1">
+              ‘To waste, to destroy our natural resources... will result in undermining our prosperity.’
+              <strong>Theodore Roosevelt</strong>
+            </div>
+          </div>
+        </section>
+      `
+    };
+
+    const fullscreenEl = document.getElementById('fullscreen-forecast');
+    const closeBtn = document.getElementById('close-forecast');
+
+    closeBtn.addEventListener('click', () => {
+      location.reload();
+    });
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        menuItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        const id = item.dataset.id;
+        if (id && contents[id]) {
+          contentArea.innerHTML = contents[id];
+          if (id === 'forecasts') {
+            fullscreenEl.style.display = 'block';
+            document.querySelector('.container').style.display = 'none';
+            return;
+          }
+          if (id === 'seasons' || id === 'whitenomore' || id === 'coral') {
+            const html = contentArea.innerHTML;
+            const randomized = shuffleGridGallery(html);
+            contentArea.innerHTML = randomized;
+          }
+          const rightPane = document.getElementById('right');
+          if (id === 'intro') {
+            rightPane.style.backgroundColor = '#000';
+            rightPane.style.color = '#fff';
+          } else {
+            rightPane.style.backgroundColor = '#fafafa';
+            rightPane.style.color = '#000';
+          }
+        }
+      });
+    });
+
+    function generateArcWithRotation() {
+      const arc = document.getElementById('arcContainer');
+      if (!arc) return;
+      arc.innerHTML = '';
+
+      const images = [
+        { src: 'weather-1.png', label: '봄 냉이' },
+        { src: 'snow-2.png', label: '겨울 햇살' },
+        { src: 'ocean-3.png', label: '바다거북' },
+        { src: 'weather-2.png', label: '꿀벌' },
+        { src: 'snow-3.png', label: '눈 골목' },
+        { src: 'ocean-4.png', label: '산호초' },
+        { src: 'weather-3.png', label: '가을 바람' },
+        { src: 'snow-4.png', label: '성에' },
+        { src: 'ocean-5.png', label: '해달' },
+      ];
+
+      // Place images in arc-container, then position and rotate with JS below
+      images.forEach((imgData) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+
+        const img = document.createElement('img');
+        img.src = imgData.src;
+        img.className = 'arc-image';
+
+        const label = document.createElement('div');
+        label.className = 'image-label';
+        label.innerText = imgData.label;
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(label);
+        arc.appendChild(wrapper);
+      });
+
+      const wrappers = arc.querySelectorAll('div');
+      const arcRect = arc.getBoundingClientRect();
+      const radius = Math.min(arcRect.width, arcRect.height) * 0.4;
+      const centerX = arcRect.width / 2;
+      const centerY = arcRect.height / 2;
+      const total = wrappers.length;
+
+      wrappers.forEach((wrapper, i) => {
+        const angle = ((i / total) * Math.PI);
+        const x = centerX + radius * Math.cos(angle - Math.PI) - 90;
+        const y = centerY + radius * Math.sin(angle - Math.PI) - 120;
+        wrapper.style.left = `${x}px`;
+        wrapper.style.top = `${y}px`;
+        wrapper.style.transform = `rotate(${(angle - Math.PI / 2) * (180 / Math.PI)}deg)`;
+      });
+
+      let rotation = 0;
+      setInterval(() => {
+        const arcRect = arc.getBoundingClientRect();
+        const radius = Math.min(arcRect.width, arcRect.height) * 0.4;
+        const centerX = arcRect.width / 2;
+        const centerY = arcRect.height / 2;
+        const wrappers = arc.querySelectorAll('div');
+        wrappers.forEach((wrapper, i) => {
+          const angle = ((i / total) * Math.PI) + rotation;
+          const x = centerX + radius * Math.cos(angle - Math.PI) - 90;
+          const y = centerY + radius * Math.sin(angle - Math.PI) - 120;
+          wrapper.style.left = `${x}px`;
+          wrapper.style.top = `${y}px`;
+          wrapper.style.transform = `rotate(${(angle - Math.PI / 2) * (180 / Math.PI)}deg)`;
+        });
+        rotation += 0.002;
+      }, 20);
+    }
+
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        if (item.dataset.id === 'forecasts') {
+          generateArcWithRotation();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
